@@ -1993,20 +1993,21 @@ declare module "punycode" {
 declare module "repl" {
     import * as stream from "stream";
     import * as readline from "readline";
+    import * as vm from "vm";
 
     interface ReplOptions {
         prompt?: string;
         input?: NodeJS.ReadableStream;
         output?: NodeJS.WritableStream;
         terminal?: boolean;
-        eval?: Function;
+        eval?: (evalCmd: string, context: vm.Context, file: string, cb: (err: Error | null, result: any) => void) => void;
         useColors?: boolean;
         useGlobal?: boolean;
         ignoreUndefined?: boolean;
-        writer?: Function;
-        completer?: Function;
+        writer?: (obj: any) => string;
+        completer?: ((line: string) => [string[], string]) | ((line: string, callback: (err: Error | null, result: [string[], string]) => void) => void);
         replMode?: any;
-        breakEvalOnSigint?: any;
+        breakEvalOnSigint?: boolean;
     }
 
     interface REPLServer extends readline.ReadLine {
@@ -2014,8 +2015,9 @@ declare module "repl" {
         inputStream: NodeJS.ReadableStream;
         outputStream: NodeJS.WritableStream;
 
-        defineCommand(keyword: string, cmd: Function | { help: string, action: Function }): void;
+        defineCommand(keyword: string, cmd: ((this: REPLServer, text: string) => void) | { help: string, action: (this: REPLServer, text: string) => void }): void;
         displayPrompt(preserveCursor?: boolean): void;
+        clearBufferedCommand(): void;
 
         /**
          * events.EventEmitter
@@ -2025,27 +2027,27 @@ declare module "repl" {
 
         addListener(event: string, listener: (...args: any[]) => void): this;
         addListener(event: "exit", listener: () => void): this;
-        addListener(event: "reset", listener: (...args: any[]) => void): this;
+        addListener(event: "reset", listener: (context: vm.Context) => void): this;
 
         emit(event: string | symbol, ...args: any[]): boolean;
         emit(event: "exit"): boolean;
-        emit(event: "reset", context: any): boolean;
+        emit(event: "reset", context: vm.Context): boolean;
 
         on(event: string, listener: (...args: any[]) => void): this;
         on(event: "exit", listener: () => void): this;
-        on(event: "reset", listener: (...args: any[]) => void): this;
+        on(event: "reset", listener: (context: vm.Context) => void): this;
 
         once(event: string, listener: (...args: any[]) => void): this;
         once(event: "exit", listener: () => void): this;
-        once(event: "reset", listener: (...args: any[]) => void): this;
+        once(event: "reset", listener: (context: vm.Context) => void): this;
 
         prependListener(event: string, listener: (...args: any[]) => void): this;
         prependListener(event: "exit", listener: () => void): this;
-        prependListener(event: "reset", listener: (...args: any[]) => void): this;
+        prependListener(event: "reset", listener: (context: vm.Context) => void): this;
 
         prependOnceListener(event: string, listener: (...args: any[]) => void): this;
         prependOnceListener(event: "exit", listener: () => void): this;
-        prependOnceListener(event: "reset", listener: (...args: any[]) => void): this;
+        prependOnceListener(event: "reset", listener: (context: vm.Context) => void): this;
     }
 
     function start(options?: string | ReplOptions): REPLServer;
